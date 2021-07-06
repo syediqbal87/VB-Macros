@@ -6,6 +6,7 @@ Sub CopyNameRow()
 Dim ms As Worksheet
 Dim ws As Worksheet
 Dim tName As String
+Dim sName As String
 Dim colNum As Integer
 Dim fCriteria As String
 Dim sFolder As String
@@ -87,9 +88,17 @@ For Each k In d.keys
             SkipBlanks:=False, Transpose:=False
     
     ' Save Worksheet
+    sName = Replace(fCriteria, "@oracle.com", "") ' Repalce the email address after @ to nothing
+    sName = Replace(sName, "?", "")               ' Remove unallowed character
+    sName = Replace(sName, ".", "_")              ' Remove unallowed character
+    sName = Replace(sName, ":", "")               ' Remove unallowed character
+    sName = Replace(sName, "*", "")               ' Remove unallowed character
+    sName = Replace(sName, "\", "")               ' Remove unallowed character
+    sName = Replace(sName, "/", "")               ' Remove unallowed character
+    
     ws.Select
     ws.Move
-    ActiveWorkbook.SaveAs Filename:=sFolder & fCriteria & ".xlsx", _
+    ActiveWorkbook.SaveAs Filename:=sFolder & sName & ".xlsx", _
           FileFormat:=xlOpenXMLWorkbook, CreateBackup:=False
     ActiveWorkbook.Close
     
