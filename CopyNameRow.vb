@@ -7,18 +7,19 @@ Dim ms As Worksheet
 Dim ws As Worksheet
 Dim tName As String
 Dim sName As String
-Dim colNum, i As Integer
+Dim colNum, i, j, gN As Integer
 Dim fCriteria As String
 Dim sFolder As String
 Dim hRows As String
 Dim SelRange As String
+Dim gCol As Variant
 
 ' --------- User Input --------- '
 tName = "Table1"                       ' Name of table that is being copied/pasted into different files (with "" around it)
 colNum = 5                             ' Column NUMBER which is being filtered i.e. where the manager names are
 sFolder = "C:\Users\siqbal\Desktop\"   ' Folder where to save all the results
 hRows = "1:5"                          ' Header rows, beginning:end (with " around it)
-' ---------------------------------
+gCol = Array("B:C", "G:K", "M:P")      ' Group columns (each range within " and seperated by comma), if no grouping, leave empty () i.e. gCol = Array()
 
 ' -------------------------------------------- '
 ' ------------- CODE STARTS HERE ------------- '
@@ -28,6 +29,9 @@ Application.StatusBar = "Running..."
 ' Select the first worksheet, assumed to be the master sheet
 Set ms = Worksheets(1)
 ms.Select
+
+' Get number of group columns
+gN = GetArrLength(gCol)
 
 ' First remove any filters
 ActiveSheet.ListObjects(tName).Range.AutoFilter Field:=colNum
@@ -55,7 +59,6 @@ For Each k In d.keys
     ' Display status
     i = i + 1
     Application.StatusBar = "Working on: " & i & " of " & d.Count
- Debug.Print i
   
     ' -------------- Copy/Paste Headers -------------- '
     ' Copy headers first
@@ -107,7 +110,7 @@ For Each k In d.keys
     ' Activate filter
     Selection.AutoFilter
     
-    ' Save Worksheet
+    ' -------------- Save Worksheet -------------- '
     sName = Replace(fCriteria, "@oracle.com", "") ' Repalce the email address after @ to nothing
     sName = Replace(sName, "?", "")               ' Remove unallowed character
     sName = Replace(sName, ".", "_")              ' Remove unallowed character
@@ -116,22 +119,43 @@ For Each k In d.keys
     sName = Replace(sName, "\", "")               ' Remove unallowed character
     sName = Replace(sName, "/", "")               ' Remove unallowed character
     
+    ' Move worksheet to new file
     ws.Select
     ws.Move
+    
+    ' Add groups, if specified
+    If gN > 0 Then
+        For j = 0 To gN
+            Columns(gCol(j)).Select
+            Selection.Columns.Group
+        Next j
+    End If
+    
+    ' Select first cell, just to clear it up
+    ActiveSheet.Cells(1, 1).Select
+    
+    ' Change worksheet name
+    ActiveSheet.Name = sName
     ActiveWorkbook.SaveAs Filename:=sFolder & sName & ".xlsx", _
           FileFormat:=xlOpenXMLWorkbook, CreateBackup:=False
     ActiveWorkbook.Close
     
-
     ' Go back to master sheet and remove any filters
     ms.Select
     ActiveSheet.ListObjects(tName).Range.AutoFilter Field:=colNum
-    
-    
 Next k
 
+' Clear status bar
 Application.StatusBar = False
 
 End Sub
 
-
+' -------------- Subroutine GetArrLength -------------- '
+' Gets the size of array for grouping columns
+Public Function GetArrLength(a As Variant) As Long
+   If IsEmpty(a) Then
+      GetArrLength = 0
+   Else
+      GetArrLength = UBound(a) - LBound(a)
+   End If
+End Function
