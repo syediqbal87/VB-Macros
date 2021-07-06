@@ -7,10 +7,11 @@ Dim ms As Worksheet
 Dim ws As Worksheet
 Dim tName As String
 Dim sName As String
-Dim colNum As Integer
+Dim colNum, i As Integer
 Dim fCriteria As String
 Dim sFolder As String
 Dim hRows As String
+Dim SelRange As String
 
 ' --------- User Input --------- '
 tName = "Table1"                       ' Name of table that is being copied/pasted into different files (with "" around it)
@@ -22,6 +23,8 @@ hRows = "1:5"                          ' Header rows, beginning:end (with " arou
 ' -------------------------------------------- '
 ' ------------- CODE STARTS HERE ------------- '
 ' -------------------------------------------- '
+Application.StatusBar = "Running..."
+
 ' Select the first worksheet, assumed to be the master sheet
 Set ms = Worksheets(1)
 ms.Select
@@ -29,18 +32,32 @@ ms.Select
 ' First remove any filters
 ActiveSheet.ListObjects(tName).Range.AutoFilter Field:=colNum
 
+' Get cell where table starts to copy/paste it in the same place later
+Dim rng As Range
+Dim rngAddr As String
+ActiveSheet.ListObjects(tName).Range(1).Select ' Select first cell of table
+Set rng = ActiveCell
+rngAddr = rng.Address                           'Returns address of start of table
+
 ' Get unique names in column
 Dim d As Object, c As Range, k, tmp As String
 Set d = CreateObject("scripting.dictionary")
 ActiveSheet.ListObjects(tName).ListColumns(colNum).Range.Select ' Select range that will be filtered over
+
 For Each c In Selection ' Loop over names
     tmp = Trim(c.Value)
     If Len(tmp) > 0 Then d(tmp) = d(tmp) + 1
 Next c
 
+' Copy paste all unique names
+i = 0
 For Each k In d.keys
-
-    ' -------------- Header Copy/Paste -------------- '
+    ' Display status
+    i = i + 1
+    Application.StatusBar = "Working on: " & i & " of " & d.Count
+ Debug.Print i
+  
+    ' -------------- Copy/Paste Headers -------------- '
     ' Copy headers first
     Rows(hRows).Select
     Selection.Copy
@@ -58,11 +75,11 @@ For Each k In d.keys
     ' Paste formula and number format only
     Selection.PasteSpecial Paste:=xlPasteFormulasAndNumberFormats, Operation:=xlNone, _
             SkipBlanks:=False, Transpose:=False
-            
-    ' Go back to master worksheet
+
+    ' -------------- Filtered Table -------------- '
+    ' Ensure we are in the master sheet
     ms.Select
-    
-    ' -------------- Filtered Table Copy/Paste -------------- '
+        
     ' Criteria to filter against
     fCriteria = k
         
@@ -73,10 +90,10 @@ For Each k In d.keys
     Range(tName & "[#All]").Select
     Selection.Copy
     
-    ' Go to the newly added worksheet with headers already and on the last empty row
+    ' Go to the newly added worksheet with headers already and paste table (same location as original table)
     ws.Select
-    Range("A" & Rows.Count).End(xlUp).Offset(1).Select
-    
+    ActiveSheet.Range(rngAddr).Select
+        
     ' Paste Format only (colors and column widths)
     Selection.PasteSpecial Paste:=xlPasteFormats, Operation:=xlNone, _
             SkipBlanks:=False, Transpose:=False
@@ -86,6 +103,9 @@ For Each k In d.keys
     ' Paste formula and number format only
     Selection.PasteSpecial Paste:=xlPasteFormulasAndNumberFormats, Operation:=xlNone, _
             SkipBlanks:=False, Transpose:=False
+    
+    ' Activate filter
+    Selection.AutoFilter
     
     ' Save Worksheet
     sName = Replace(fCriteria, "@oracle.com", "") ' Repalce the email address after @ to nothing
@@ -102,10 +122,16 @@ For Each k In d.keys
           FileFormat:=xlOpenXMLWorkbook, CreateBackup:=False
     ActiveWorkbook.Close
     
+
     ' Go back to master sheet and remove any filters
     ms.Select
     ActiveSheet.ListObjects(tName).Range.AutoFilter Field:=colNum
+    
+    
 Next k
 
+Application.StatusBar = False
+
 End Sub
+
 
