@@ -110,6 +110,20 @@ For Each k In d.keys
     ' Activate filter
     Selection.AutoFilter
     
+    ' -------------- Grouping -------------- '
+    ' Add groups, if specified
+    If gN > 0 Then
+        For j = 0 To gN
+            Columns(gCol(j)).Select
+            Selection.Columns.Group
+        Next j
+        ' Collapse all
+        ActiveSheet.Outline.ShowLevels RowLevels:=1, ColumnLevels:=1
+    End If
+    
+    ' Select first cell, just to clear it up
+    ActiveSheet.Cells(1, 1).Select
+    
     ' -------------- Save Worksheet -------------- '
     sName = Replace(fCriteria, "@oracle.com", "") ' Repalce the email address after @ to nothing
     sName = Replace(sName, "?", "")               ' Remove unallowed character
@@ -122,17 +136,6 @@ For Each k In d.keys
     ' Move worksheet to new file
     ws.Select
     ws.Move
-    
-    ' Add groups, if specified
-    If gN > 0 Then
-        For j = 0 To gN
-            Columns(gCol(j)).Select
-            Selection.Columns.Group
-        Next j
-    End If
-    
-    ' Select first cell, just to clear it up
-    ActiveSheet.Cells(1, 1).Select
     
     ' Change worksheet name
     ActiveSheet.Name = sName
@@ -159,3 +162,4 @@ Public Function GetArrLength(a As Variant) As Long
       GetArrLength = UBound(a) - LBound(a)
    End If
 End Function
+
