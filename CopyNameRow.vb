@@ -1,10 +1,9 @@
 Option Explicit
 
 Sub CopyNameRow()
-
 ' Declare variables
-Dim ms As Worksheet
-Dim ws As Worksheet
+Dim sWB As Workbook
+Dim ms, rs, ws As Worksheet
 Dim tName As String
 Dim sName As String
 Dim colNum, i, j, gN As Integer
@@ -13,8 +12,11 @@ Dim sFolder As String
 Dim hRows As String
 Dim SelRange As String
 Dim gCol As Variant
+Dim sMaster, sReadme As Integer
 
 ' --------- User Input --------- '
+sMaster = 2                            ' Master sheet
+sReadme = 3                            ' README sheet
 tName = "Table1"                       ' Name of table that is being copied/pasted into different files (with "" around it)
 colNum = 5                             ' Column NUMBER which is being filtered i.e. where the manager names are
 sFolder = "C:\Users\siqbal\Desktop\"   ' Folder where to save all the results
@@ -25,9 +27,22 @@ gCol = Array("B:C", "G:K", "M:P")      ' Group columns (each range within " and 
 ' ------------- CODE STARTS HERE ------------- '
 ' -------------------------------------------- '
 Application.StatusBar = "Running..."
+Application.ScreenUpdating = False
 
-' Select the first worksheet, assumed to be the master sheet
-Set ms = Worksheets(1)
+' Get master workbook
+Dim mWB As Workbook
+Set mWB = ThisWorkbook
+
+' Select the master and the readme worksheet
+Set ms = Worksheets(sMaster)
+Set rs = Worksheets(sReadme)
+
+' Get name of these sheets
+Dim mName, rName As String
+mName = ms.Name
+rName = rs.Name
+
+' Start ot filter
 ms.Select
 
 ' Get number of group columns
@@ -124,6 +139,20 @@ For Each k In d.keys
     ' Select first cell, just to clear it up
     ActiveSheet.Cells(1, 1).Select
     
+    ' Move filtered worksheet to new file
+    ws.Select
+    ws.Move
+    ActiveSheet.Name = mName
+        
+    ' Save info of new workbook
+    Set sWB = ActiveWorkbook
+    
+    ' Copy the README tab
+    mWB.Activate        ' Go back to master file
+    rs.Select           ' Select readme tab
+    rs.Copy Before:=Workbooks(sWB.Name).Sheets(1)
+    sWB.Activate
+    
     ' -------------- Save Worksheet -------------- '
     sName = Replace(fCriteria, "@oracle.com", "") ' Repalce the email address after @ to nothing
     sName = Replace(sName, "?", "")               ' Remove unallowed character
@@ -132,23 +161,18 @@ For Each k In d.keys
     sName = Replace(sName, "*", "")               ' Remove unallowed character
     sName = Replace(sName, "\", "")               ' Remove unallowed character
     sName = Replace(sName, "/", "")               ' Remove unallowed character
-    
-    ' Move worksheet to new file
-    ws.Select
-    ws.Move
-    
-    ' Change worksheet name
-    ActiveSheet.Name = sName
     ActiveWorkbook.SaveAs Filename:=sFolder & sName & ".xlsx", _
           FileFormat:=xlOpenXMLWorkbook, CreateBackup:=False
     ActiveWorkbook.Close
-    
+        
     ' Go back to master sheet and remove any filters
+    mWB.Activate        ' Go back to master file
     ms.Select
     ActiveSheet.ListObjects(tName).Range.AutoFilter Field:=colNum
 Next k
 
 ' Clear status bar
+Application.ScreenUpdating = True
 Application.StatusBar = False
 
 End Sub
@@ -162,4 +186,3 @@ Public Function GetArrLength(a As Variant) As Long
       GetArrLength = UBound(a) - LBound(a)
    End If
 End Function
-
