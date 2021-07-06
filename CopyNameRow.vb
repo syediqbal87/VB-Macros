@@ -1,6 +1,7 @@
 Option Explicit
 
 Sub CopyNameRow()
+
 ' Declare variables
 Dim ms As Worksheet
 Dim ws As Worksheet
@@ -8,11 +9,13 @@ Dim tName As String
 Dim colNum As Integer
 Dim fCriteria As String
 Dim sFolder As String
+Dim hRows As String
 
 ' --------- User Input --------- '
 tName = "Table1"                       ' Name of table that is being copied/pasted into different files (with "" around it)
 colNum = 5                             ' Column NUMBER which is being filtered i.e. where the manager names are
 sFolder = "C:\Users\siqbal\Desktop\"   ' Folder where to save all the results
+hRows = "1:5"                          ' Header rows, beginning:end (with " around it)
 ' ---------------------------------
 
 ' -------------------------------------------- '
@@ -35,16 +38,12 @@ For Each c In Selection ' Loop over names
 Next c
 
 For Each k In d.keys
-    ' Criteria to filter against
-    fCriteria = k
-    
-    ' Filter results based on fCriteria
-    ActiveSheet.ListObjects(tName).Range.AutoFilter Field:=colNum, Criteria1:=fCriteria
-    
-    ' Select everything on the filtered table
-    Range(tName & "[#All]").Select
+
+    ' -------------- Header Copy/Paste -------------- '
+    ' Copy headers first
+    Rows(hRows).Select
     Selection.Copy
-    
+
     ' Add new worksheet
     Sheets.Add After:=ActiveSheet
     Set ws = ActiveSheet
@@ -54,8 +53,36 @@ For Each k In d.keys
             SkipBlanks:=False, Transpose:=False
     Selection.PasteSpecial Paste:=xlPasteColumnWidths, Operation:=xlNone, _
             SkipBlanks:=False, Transpose:=False
+        
+    ' Paste formula and number format only
+    Selection.PasteSpecial Paste:=xlPasteFormulasAndNumberFormats, Operation:=xlNone, _
+            SkipBlanks:=False, Transpose:=False
+            
+    ' Go back to master worksheet
+    ms.Select
     
-    ' Pase formula and number format only
+    ' -------------- Filtered Table Copy/Paste -------------- '
+    ' Criteria to filter against
+    fCriteria = k
+        
+    ' Filter results based on fCriteria
+    ActiveSheet.ListObjects(tName).Range.AutoFilter Field:=colNum, Criteria1:=fCriteria
+    
+    ' Select everything on the filtered table
+    Range(tName & "[#All]").Select
+    Selection.Copy
+    
+    ' Go to the newly added worksheet with headers already and on the last empty row
+    ws.Select
+    Range("A" & Rows.Count).End(xlUp).Offset(1).Select
+    
+    ' Paste Format only (colors and column widths)
+    Selection.PasteSpecial Paste:=xlPasteFormats, Operation:=xlNone, _
+            SkipBlanks:=False, Transpose:=False
+    Selection.PasteSpecial Paste:=xlPasteColumnWidths, Operation:=xlNone, _
+            SkipBlanks:=False, Transpose:=False
+    
+    ' Paste formula and number format only
     Selection.PasteSpecial Paste:=xlPasteFormulasAndNumberFormats, Operation:=xlNone, _
             SkipBlanks:=False, Transpose:=False
     
@@ -72,3 +99,4 @@ For Each k In d.keys
 Next k
 
 End Sub
+
